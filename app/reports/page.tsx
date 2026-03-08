@@ -45,7 +45,7 @@ import dayjs from 'dayjs';
 import Layout from '@/components/Layout';
 import { getStoredUsername } from '@/lib/auth';
 import { apiGetReports, apiDeleteExpense, apiRestoreExpense, apiGetDeletedExpenses, apiUpdateExpense } from '@/lib/api';
-import { EXPENSE_CATEGORIES, getSubCategoriesFor } from '@/lib/db/types';
+import { EXPENSE_CATEGORIES, getSubCategoriesFor } from '@/lib/types';
 import { format, parseISO } from 'date-fns';
 
 type ExpenseItem = { id: string; description: string; amount: number; category: string; sub_category?: string; date: string };

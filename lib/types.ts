@@ -1,6 +1,6 @@
 /**
- * Shared database entity types (used by API and frontend).
- * All user-provided string fields are sanitized before persistence.
+ * Shared types and constants for the UI (categories, currency, API shapes).
+ * Backend API is at NEXT_PUBLIC_API_URL.
  */
 
 export interface User {
@@ -16,6 +16,7 @@ export interface Expense {
   amount: number;
   description: string;
   category: string;
+  sub_category?: string | null;
   date: string;
   created_at: Date;
   updated_at: Date;
@@ -28,7 +29,9 @@ export interface Bill {
   amount: number;
   due_date: string;
   category: string;
-  is_paid: boolean;
+  sub_category?: string | null;
+  is_paid?: boolean;
+  isPaid?: boolean;
   created_at: Date;
   updated_at: Date;
 }
@@ -97,21 +100,6 @@ export interface UpdateSettingsInput {
   currency?: string;
 }
 
-/** Row types from MySQL (snake_case) */
-export interface UserRow {
-  id: string;
-  username: string;
-  password_hash?: string | null;
-  role?: 'user' | 'admin';
-  full_name?: string | null;
-  email?: string | null;
-  phone?: string | null;
-  recovery_pin_hash?: string | null;
-  created_at: Date;
-  updated_at: Date;
-}
-
-/** Public user profile (no password_hash, no recovery_pin_hash) */
 export interface UserProfile {
   id: string;
   username: string;
@@ -119,41 +107,6 @@ export interface UserProfile {
   full_name: string | null;
   email: string | null;
   phone: string | null;
-  created_at: Date;
-  updated_at: Date;
-}
-
-export interface ExpenseRow {
-  id: string;
-  user_id: string;
-  amount: number;
-  description: string;
-  category: string;
-  sub_category?: string | null;
-  date: string;
-  is_deleted: number;
-  created_at: Date;
-  updated_at: Date;
-}
-
-export interface BillRow {
-  id: string;
-  user_id: string;
-  name: string;
-  amount: number;
-  due_date: string;
-  category: string;
-  sub_category?: string | null;
-  is_paid: number;
-  created_at: Date;
-  updated_at: Date;
-}
-
-export interface SettingsRow {
-  id: string;
-  user_id: string;
-  monthly_budget: number;
-  currency: string;
   created_at: Date;
   updated_at: Date;
 }

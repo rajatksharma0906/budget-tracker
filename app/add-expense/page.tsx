@@ -21,7 +21,7 @@ import dayjs from 'dayjs';
 import Layout from '@/components/Layout';
 import { getStoredUsername } from '@/lib/auth';
 import { apiCreateExpense } from '@/lib/api';
-import { EXPENSE_CATEGORIES, getSubCategoriesFor } from '@/lib/db/types';
+import { EXPENSE_CATEGORIES, getSubCategoriesFor } from '@/lib/types';
 
 const DESCRIPTION_OPTIONS = [
   'Walmart',
