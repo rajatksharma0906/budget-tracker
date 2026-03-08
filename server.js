@@ -5,4 +5,4 @@
  */
 const path = require('path');
 require('dotenv/config');
-require(path.join(__dirname, 'dist', 'src', 'main.js'));
+require(path.join(__dirname, 'dist', 'main.js'));

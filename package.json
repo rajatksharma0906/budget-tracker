@@ -6,10 +6,10 @@
     "node": ">=18"
   },
   "scripts": {
-    "build": "npx nest build",
-    "start": "node dist/src/main",
+    "build": "npx nest build && node scripts/write-dist-main.js",
+    "start": "node dist/main",
     "start:dev": "nest start --watch",
-    "start:prod": "node dist/src/main",
+    "start:prod": "node dist/main",
     "lint": "eslint \"{src,lib,scripts}/**/*.ts\"",
     "db:create": "node scripts/create-database.js",
     "db:migrate": "node scripts/run-migrations.js",
