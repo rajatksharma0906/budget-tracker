@@ -77,7 +77,8 @@ Port is configurable via `PORT` (default 3001).
 3. **Start command:** `npm run start:prod` or `node server.js` (entry file).
 4. **Entry file (if required):** `server.js` (runs the built app from `dist/src/main.js`).
 5. **Node:** 20 or 22.
-6. **Env vars:** `PORT`, `MYSQL_HOST`, `MYSQL_USER`, `MYSQL_PASSWORD`, `MYSQL_DATABASE`.
+6. **Env vars:** `PORT`, `MYSQL_HOST`, `MYSQL_USER`, `MYSQL_PASSWORD`, `MYSQL_DATABASE`.  
+   If the app and MySQL are on the same Hostinger server, set **MYSQL_HOST=localhost** (or the DB hostname from hPanel → Databases) so MySQL allows the connection. See TROUBLESHOOTING.md for "Access denied for user ... @ 'IP'".
 
 Use the same MySQL settings as in hPanel (e.g. `localhost` and the DB name from Databases).
 
