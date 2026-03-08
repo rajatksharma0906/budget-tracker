@@ -110,6 +110,22 @@ npm run build
 npm start
 ```
 
+### Deploying to Hostinger (Node.js) — API must use custom server
+
+This app uses a **custom server** (Express serves `/api/*` and Next.js serves the UI). If you deploy as a **Next.js app**, the host runs only the Next.js server, so **`/api/auth/login` and all other API routes return 404**.
+
+**Do this on Hostinger:**
+
+1. In the Node.js application settings, set **Application type** to **Node.js** (not “Next.js”).
+2. **Build command:** `npm run build`
+3. **Start command:** `npm start`  
+   This runs the custom server (`server/index.ts`) so both the API and the Next.js UI are served from the same app.
+4. Set **Node version** to 22 (or 20).
+5. Add your env vars in the Hostinger panel (e.g. `MYSQL_HOST`, `MYSQL_USER`, `MYSQL_PASSWORD`, `MYSQL_DATABASE`, `PORT` if required). Use the same DB host/user/name as in hPanel (e.g. `localhost` and the DB name from Databases).
+6. After deploy, open `https://your-subdomain/health` — it should return `{"ok":true}`. Then try login again; `/api/auth/login` should respond.
+
+`tsx` is included in **dependencies** so `npm start` works in production.
+
 ## Usage
 
 1. **Login**: Enter a username (letters, numbers, underscores; 1–50 chars).
