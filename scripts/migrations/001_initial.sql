@@ -9,6 +9,8 @@ CREATE TABLE IF NOT EXISTS users (
   INDEX idx_users_username (username)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+ALTER TABLE users CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS expenses (
   id CHAR(36) PRIMARY KEY,
   user_id CHAR(36) NOT NULL,

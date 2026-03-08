@@ -19,6 +19,7 @@ async function main() {
     password: process.env.MYSQL_PASSWORD || '',
   });
   await connection.query(`CREATE DATABASE IF NOT EXISTS \`${dbName}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`);
+  await connection.query(`ALTER DATABASE \`${dbName}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`);
   console.log(`Database "${dbName}" is ready.`);
   await connection.end();
 }

@@ -6,10 +6,11 @@ import {
   UseGuards,
   BadRequestException,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiBody, ApiResponse } from '@nestjs/swagger';
 import { UserIdGuard } from '../guards/user-id.guard';
 import { UserId } from '../decorators/user-id.decorator';
 import { ProfileService } from './profile.service';
+import { ProfileUpdateDto, ChangePasswordDto, RecoveryPinDto, ProfileResponseDto } from '../dto';
 
 @ApiTags('profile')
 @Controller('api/profile')
@@ -20,12 +21,15 @@ export class ProfileController {
 
   @Get()
   @ApiOperation({ summary: 'Get profile' })
+  @ApiResponse({ status: 200, description: 'User profile', type: ProfileResponseDto })
   async getProfile(@UserId() userId: string) {
     return this.profileService.getProfile(userId);
   }
 
   @Put()
   @ApiOperation({ summary: 'Update profile' })
+  @ApiBody({ type: ProfileUpdateDto })
+  @ApiResponse({ status: 200, description: 'Updated profile', type: ProfileResponseDto })
   async updateProfile(
     @UserId() userId: string,
     @Body('fullName') fullName?: string,
@@ -40,6 +44,9 @@ export class ProfileController {
 
   @Put('password')
   @ApiOperation({ summary: 'Change password' })
+  @ApiBody({ type: ChangePasswordDto })
+  @ApiResponse({ status: 200, description: 'Password updated' })
+  @ApiResponse({ status: 400, description: 'Current password or new password missing/invalid' })
   async changePassword(
     @UserId() userId: string,
     @Body('currentPassword') currentPassword?: string,
@@ -61,6 +68,9 @@ export class ProfileController {
 
   @Put('recovery-pin')
   @ApiOperation({ summary: 'Update recovery pin' })
+  @ApiBody({ type: RecoveryPinDto })
+  @ApiResponse({ status: 200, description: 'Recovery pin updated' })
+  @ApiResponse({ status: 400, description: 'Current password or new recovery pin missing' })
   async updateRecoveryPin(
     @UserId() userId: string,
     @Body('currentPassword') currentPassword?: string,

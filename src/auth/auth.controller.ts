@@ -8,8 +8,9 @@ import {
   UnauthorizedException,
   NotFoundException,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBody, ApiResponse } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
+import { LoginDto, SignupDto, ResetPasswordDto } from '../dto';
 
 @ApiTags('auth')
 @Controller('api/auth')
@@ -19,6 +20,10 @@ export class AuthController {
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Login' })
+  @ApiBody({ type: LoginDto })
+  @ApiResponse({ status: 200, description: 'Returns user id and token' })
+  @ApiResponse({ status: 401, description: 'Invalid credentials' })
+  @ApiResponse({ status: 404, description: 'User not found' })
   async login(
     @Body('username') username: string,
     @Body('password') password: string,
@@ -41,28 +46,25 @@ export class AuthController {
 
   @Post('signup')
   @ApiOperation({ summary: 'Sign up' })
-  async signup(
-    @Body('username') username: string,
-    @Body('password') password: string,
-    @Body('fullName') fullName?: string,
-    @Body('full_name') full_name?: string,
-    @Body('email') email?: string,
-    @Body('phone') phone?: string,
-    @Body('recoveryPin') recoveryPin?: string,
-    @Body('recovery_pin') recovery_pin?: string,
-  ) {
+  @ApiBody({ type: SignupDto })
+  @ApiResponse({ status: 201, description: 'User created; returns user id and token' })
+  @ApiResponse({ status: 400, description: 'Validation error or username taken' })
+  async signup(@Body() body: SignupDto & { full_name?: string; recovery_pin?: string }) {
+    const username = body.username;
+    const password = body.password;
     if (typeof username !== 'string') {
       throw new BadRequestException({ error: 'Username is required' });
     }
     if (typeof password !== 'string') {
       throw new BadRequestException({ error: 'Password is required' });
     }
+    const fullName = body.fullName ?? body.full_name;
+    const recoveryPin = body.recoveryPin ?? body.recovery_pin;
     const result = await this.authService.signup(username, password, {
-      fullName: typeof fullName === 'string' ? fullName : full_name,
-      email: typeof email === 'string' ? email : undefined,
-      phone: typeof phone === 'string' ? phone : undefined,
-      recoveryPin:
-        typeof recoveryPin === 'string' ? recoveryPin : recovery_pin,
+      fullName: typeof fullName === 'string' ? fullName : undefined,
+      email: typeof body.email === 'string' ? body.email : undefined,
+      phone: typeof body.phone === 'string' ? body.phone : undefined,
+      recoveryPin: typeof recoveryPin === 'string' ? recoveryPin : undefined,
     });
     if ('error' in result) {
       throw new BadRequestException({ error: result.error });
@@ -73,17 +75,16 @@ export class AuthController {
   @Post('reset-password')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Reset password' })
+  @ApiBody({ type: ResetPasswordDto })
+  @ApiResponse({ status: 200, description: 'Password reset success' })
+  @ApiResponse({ status: 400, description: 'Invalid email/phone/pin or user not found' })
   async resetPassword(
-    @Body('email') email: string,
-    @Body('phone') phone: string,
-    @Body('recoveryPin') recoveryPin: string,
-    @Body('recovery_pin') recovery_pin: string,
-    @Body('newPassword') newPassword: string,
-    @Body('new_password') new_password: string,
+    @Body() body: ResetPasswordDto & { recovery_pin?: string; new_password?: string },
   ) {
-    const pin = typeof recoveryPin === 'string' ? recoveryPin : recovery_pin;
-    const newPass =
-      typeof newPassword === 'string' ? newPassword : new_password;
+    const email = body.email;
+    const phone = body.phone;
+    const pin = body.recoveryPin ?? body.recovery_pin;
+    const newPass = body.newPassword ?? body.new_password;
     if (
       typeof email !== 'string' ||
       typeof phone !== 'string' ||
@@ -94,12 +95,7 @@ export class AuthController {
         error: 'Email, phone, recovery pin, and new password are required.',
       });
     }
-    const result = await this.authService.resetPassword(
-      email,
-      phone,
-      pin,
-      newPass,
-    );
+    const result = await this.authService.resetPassword(email, phone, pin, newPass);
     if ('error' in result) {
       throw new BadRequestException({ error: result.error });
     }

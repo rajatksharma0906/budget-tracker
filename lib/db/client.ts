@@ -7,8 +7,7 @@ import mysql from 'mysql2/promise';
 
 // Use 127.0.0.1 instead of localhost so MySQL sees IPv4; some servers (e.g. Hostinger)
 // grant user only for 127.0.0.1 and deny when localhost resolves to ::1
-const host = process.env.MYSQL_HOST ?? 'localhost';
-const mysqlHost = host === 'localhost' ? '127.0.0.1' : host;
+const mysqlHost = process.env.MYSQL_HOST ?? 'localhost';
 
 const pool = mysql.createPool({
   host: mysqlHost,

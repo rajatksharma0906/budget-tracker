@@ -1,5 +1,5 @@
 import { Controller, Get, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
 import { UserIdGuard } from '../guards/user-id.guard';
 import { UserId } from '../decorators/user-id.decorator';
 import { SummaryService } from './summary.service';
@@ -13,6 +13,7 @@ export class SummaryController {
 
   @Get()
   @ApiOperation({ summary: 'Monthly summary' })
+  @ApiResponse({ status: 200, description: 'Current month totals and breakdown' })
   async getSummary(@UserId() userId: string) {
     return this.summaryService.getSummary(userId);
   }

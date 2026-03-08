@@ -13,6 +13,16 @@ require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
 const MIGRATIONS_DIR = path.join(__dirname, 'migrations');
 
+/** Strip leading comment and blank lines so segments that start with -- (e.g. file header + SQL) still run */
+function cleanStatement(s) {
+  const trimmed = s.trim();
+  if (!trimmed.length) return '';
+  const lines = trimmed.split('\n');
+  let start = 0;
+  while (start < lines.length && (lines[start].trim() === '' || lines[start].trim().startsWith('--'))) start++;
+  return lines.slice(start).join('\n').trim();
+}
+
 async function main() {
   const connection = await mysql.createConnection({
     host: process.env.MYSQL_HOST || 'localhost',
@@ -24,6 +34,8 @@ async function main() {
   });
 
   try {
+    const dbName = process.env.MYSQL_DATABASE || 'budget_tracker';
+    await connection.query(`ALTER DATABASE \`${dbName}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`);
     const files = fs.readdirSync(MIGRATIONS_DIR).filter((f) => f.endsWith('.sql')).sort();
     for (const file of files) {
       const filePath = path.join(MIGRATIONS_DIR, file);
@@ -32,8 +44,8 @@ async function main() {
       try {
         const statements = sql
           .split(';')
-          .map((s) => s.trim())
-          .filter((s) => s.length > 0 && !s.startsWith('--'));
+          .map((s) => cleanStatement(s))
+          .filter((s) => s.length > 0);
         if (statements.length > 1) {
           for (let i = 0; i < statements.length; i++) {
             try {

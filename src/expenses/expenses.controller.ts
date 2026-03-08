@@ -6,10 +6,11 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiBody, ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { UserIdGuard } from '../guards/user-id.guard';
 import { UserId } from '../decorators/user-id.decorator';
 import { ExpensesService } from './expenses.service';
+import { ExpensePostDto, ExpenseResponseDto } from '../dto';
 
 @ApiTags('expenses')
 @Controller('api/expenses')
@@ -20,6 +21,9 @@ export class ExpensesController {
 
   @Get()
   @ApiOperation({ summary: 'List expenses' })
+  @ApiQuery({ name: 'start', required: false, example: '2025-03-01' })
+  @ApiQuery({ name: 'end', required: false, example: '2025-03-31' })
+  @ApiResponse({ status: 200, description: 'List of expenses', type: [ExpenseResponseDto] })
   async getExpenses(
     @UserId() userId: string,
     @Query('start') start?: string,
@@ -30,6 +34,8 @@ export class ExpensesController {
 
   @Get('deleted')
   @ApiOperation({ summary: 'List deleted expenses' })
+  @ApiQuery({ name: 'month', required: false, example: '2025-03' })
+  @ApiResponse({ status: 200, description: 'List of deleted expenses' })
   async getDeletedExpenses(
     @UserId() userId: string,
     @Query('month') month?: string,
@@ -39,6 +45,11 @@ export class ExpensesController {
 
   @Post()
   @ApiOperation({ summary: 'Create/update/delete/restore expense' })
+  @ApiBody({ type: ExpensePostDto, description: 'Create: amount, description, category, date. Update/delete/restore: id + action' })
+  @ApiResponse({ status: 201, description: 'Created or updated expense', type: ExpenseResponseDto })
+  @ApiResponse({ status: 200, description: 'Delete/restore success' })
+  @ApiResponse({ status: 400, description: 'Validation error' })
+  @ApiResponse({ status: 404, description: 'Expense not found' })
   async postExpense(@UserId() userId: string, @Body() body: Record<string, unknown>) {
     return this.expensesService.postExpense(userId, body);
   }

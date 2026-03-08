@@ -6,10 +6,11 @@ import {
   Body,
   UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiBody, ApiParam, ApiResponse } from '@nestjs/swagger';
 import { UserIdGuard } from '../guards/user-id.guard';
 import { UserId } from '../decorators/user-id.decorator';
 import { AdminService } from './admin.service';
+import { AdminResetPasswordDto } from '../dto';
 
 @ApiTags('admin')
 @Controller('api/admin')
@@ -20,12 +21,18 @@ export class AdminController {
 
   @Get('users')
   @ApiOperation({ summary: 'List users (admin)' })
+  @ApiResponse({ status: 200, description: 'List of users (admin only)' })
   async listUsers(@UserId() userId: string) {
     return this.adminService.listUsers(userId);
   }
 
   @Put('users/:id/reset-password')
   @ApiOperation({ summary: 'Reset user password (admin)' })
+  @ApiParam({ name: 'id', description: 'Target user UUID' })
+  @ApiBody({ type: AdminResetPasswordDto })
+  @ApiResponse({ status: 200, description: 'Password reset' })
+  @ApiResponse({ status: 400, description: 'New password required' })
+  @ApiResponse({ status: 403, description: 'Admin only' })
   async resetPassword(
     @UserId() userId: string,
     @Param('id') targetUserId: string,
