@@ -2,6 +2,9 @@
   "name": "budget-tracker",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "build": "npx nest build",
     "start": "node dist/src/main",
