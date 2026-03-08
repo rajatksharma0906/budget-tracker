@@ -1,13 +1,8 @@
 #!/usr/bin/env node
 /**
- * Entry file for Hostinger (and other hosts that expect server.js).
- * The real app is server/index.ts (Express + Next.js), run via npm start (tsx).
+ * Entry for Hostinger (Node.js). Build first: npm run build
+ * Then start: node server.js or npm run start:prod
  */
-const { execSync } = require('child_process');
 const path = require('path');
-
-process.chdir(path.resolve(__dirname));
-execSync('npm start', {
-  stdio: 'inherit',
-  env: { ...process.env, NODE_ENV: 'production' },
-});
+require('dotenv/config');
+require(path.join(__dirname, 'dist', 'src', 'main.js'));

@@ -1,25 +1,23 @@
-# Budget Tracker
+# Budget Tracker API
 
-A budget tracking web application built with Next.js, React, Material UI, and **MySQL**.
+Backend API for the Budget Tracker app, built with **NestJS** and **MySQL**. No UI—API only.
 
 ## Features
 
-- **📱 Login / Sign up**: Username + password; sign up includes full name, email, phone, and optional 4-digit recovery pin
-- **🔐 Recovery pin**: 4-digit pin used to reset password when logged out (email + phone + pin)
-- **👤 Profile**: Update full name and phone; change password or recovery pin (separate actions; recovery pin is never shown)
-- **👑 Admin**: Log in as admin to access Admin panel—list users (email, phone for contact), reset user passwords when requested
-- **💰 Dashboard**: Monthly expense summary, remaining budget, and quick actions
-- **📝 Add Bills**: Multi-step form to add bills
-- **📊 Monthly Reports**: Bills and expenses for any month with budget progress
-- **📈 Historical Reports**: Spending patterns for the last 6 months
-- **⚙️ Settings**: Monthly budget and currency (USD, EUR, GBP, INR, etc.)
-- **💸 Add Expenses**: Add expenses with description, amount, category, and date
-- **🔒 Security**: Parameterized SQL (injection-safe), input validation, XSS-safe output
-- **📱 Responsive**: Mobile-friendly layout and touch targets
+- **Auth**: Login, signup, reset password (email + phone + recovery pin)
+- **Profile**: Get/update profile, change password, update recovery pin
+- **Expenses**: List, create, update, soft-delete, restore; list deleted
+- **Bills**: List by date range, create bill
+- **Settings**: Get/update monthly budget and currency
+- **Summary**: Monthly totals (expenses, bills, budget)
+- **Reports**: Monthly report data, historical and yearly aggregates
+- **Admin**: List users, reset user password (admin role required)
+- **Swagger**: Interactive API docs at `/api-docs`
+- **Security**: Parameterized SQL, input validation, X-User-Id guard
 
-## Setup Instructions
+## Setup
 
-### 1. Install Dependencies
+### 1. Install dependencies
 
 ```bash
 npm install
@@ -27,13 +25,13 @@ npm install
 
 ### 2. MySQL
 
-Ensure MySQL (or MariaDB) is installed and running. Create a database and configure env:
+Copy env and set MySQL credentials:
 
 ```bash
-cp .env.example .env.local
+cp .env.example .env
 ```
 
-Edit `.env.local` with your MySQL credentials:
+Edit `.env`:
 
 ```
 MYSQL_HOST=localhost
@@ -43,158 +41,105 @@ MYSQL_PASSWORD=your_password
 MYSQL_DATABASE=budget_tracker
 ```
 
-### 3. Run Migrations
-
-Create the database and tables:
+### 3. Run migrations
 
 ```bash
 npm run db:setup
 ```
 
-Or step by step:
+Or: `npm run db:create` then `npm run db:migrate`.
+
+### 4. Start the API
+
+**Development (watch):**
 
 ```bash
-npm run db:create   # Creates database if not exists
-npm run db:migrate # Runs SQL migrations in scripts/migrations/
+npm run start:dev
 ```
 
-### Hostinger MySQL: "Access denied for user ... @ '107.134.235.190'"
+**Production (build then run):**
 
-That error means the MySQL user is not allowed to connect **from the IP** your app is using (`107.134.235.190`).
+```bash
+npm run build
+npm run start:prod
+```
 
-**Option A – App and MySQL on the same Hostinger server (recommended)**  
-Run your Node app on the same hosting account as the database (e.g. deploy the app on Hostinger). Then in `.env` use:
+- **Health (app only):** http://localhost:3001/health → `{ ok: true, app: "ok" }`
+- **Health (app + MySQL):** http://localhost:3001/health/db → `{ ok, app, mysql, error? }`
+- **Swagger UI:** http://localhost:3001/api-docs  
 
-- `MYSQL_HOST=localhost` (or the MySQL hostname shown in hPanel → Databases)
-- `MYSQL_USER=u646670068_budget_user`
-- `MYSQL_PASSWORD=<your DB password>`
-- `MYSQL_DATABASE=u646670068_budget_tracker` (or the exact DB name from hPanel)
+Port is configurable via `PORT` (default 3001).
 
-Hostinger usually allows the DB user to connect from `localhost` when the app is on the same server, so no extra step is needed.
+## Hostinger deploy
 
-**Option B – App runs elsewhere (e.g. your PC or another host)**  
-The DB user must be allowed to connect from that machine’s IP:
+1. **Application type:** Node.js (or Nest/Express).
+2. **Build command:** `npm run build`
+3. **Start command:** `npm run start:prod` or `node server.js` (entry file).
+4. **Entry file (if required):** `server.js` (runs the built app from `dist/src/main.js`).
+5. **Node:** 20 or 22.
+6. **Env vars:** `PORT`, `MYSQL_HOST`, `MYSQL_USER`, `MYSQL_PASSWORD`, `MYSQL_DATABASE`.
 
-1. In **hPanel** go to **Databases** → **Remote MySQL** (or **MySQL Remote Access**).
-2. Add the IP your app uses: **107.134.235.190** (or “Any” for testing only).
-3. In `.env` use the **MySQL server hostname** from Hostinger (e.g. `mysqlXX.hostinger.com` or the value in “Hostname” in the database details), not `localhost`.
-4. Ensure **username**, **password**, and **database name** match exactly what’s in hPanel (case-sensitive).
+Use the same MySQL settings as in hPanel (e.g. `localhost` and the DB name from Databases).
 
-Then run `npm run db:test` to verify the connection.
+## API overview
 
-### Create an admin user
+| Path | Method | Auth | Description |
+|------|--------|------|-------------|
+| `/health` | GET | No | App liveness (`{ ok: true, app: "ok" }`) |
+| `/health/db` | GET | No | App + MySQL connection (`{ ok, app, mysql, error? }`) |
+| `/api/auth/login` | POST | No | Login |
+| `/api/auth/signup` | POST | No | Sign up |
+| `/api/auth/reset-password` | POST | No | Reset password |
+| `/api/profile` | GET, PUT | X-User-Id | Profile |
+| `/api/expenses` | GET, POST | X-User-Id | Expenses (POST: action create/update/delete/restore) |
+| `/api/expenses/deleted` | GET | X-User-Id | Deleted expenses |
+| `/api/bills` | GET, POST | X-User-Id | Bills |
+| `/api/settings` | GET, PUT | X-User-Id | Settings |
+| `/api/summary` | GET | X-User-Id | Monthly summary |
+| `/api/reports` | GET | X-User-Id | Reports (query: month YYYY-MM) |
+| `/api/admin/users` | GET | X-User-Id (admin) | List users |
+| `/api/admin/users/:id/reset-password` | PUT | X-User-Id (admin) | Reset user password |
 
-To access the Admin panel, set a user's role to `admin` in MySQL:
+Protected routes require header **`X-User-Id`** (user ID from login response).
+
+## Create admin user
+
+In MySQL:
 
 ```sql
 UPDATE users SET role = 'admin' WHERE username = 'your_username';
 ```
 
-Then log in with that username (and password). You will see an **Admin** button and can open the Admin panel to list users and reset their passwords.
+## Tech stack
 
-### 4. Start the App
+- **NestJS 10** – API framework
+- **MySQL (mysql2)** – Database, parameterized queries
+- **Swagger** – API docs
+- **date-fns** – Date handling
+- **bcryptjs** – Password hashing
 
-```bash
-npm run dev
-```
-
-Open [http://localhost:3001](http://localhost:3001).
-
-- **Port in use?** Set another port: `PORT=3002 npm run dev`, then open `http://localhost:3002`.
-- **Check server is up:** Open [http://localhost:3001/health](http://localhost:3001/health) — should return `{"ok":true}`.
-
-For production build:
-
-```bash
-npm run build
-npm start
-```
-
-### Deploying to Hostinger (Node.js) — API must use custom server
-
-This app uses a **custom server** (Express serves `/api/*` and Next.js serves the UI). If you deploy as a **Next.js app**, the host runs only the Next.js server, so **`/api/auth/login` and all other API routes return 404**.
-
-**Do this on Hostinger:**
-
-1. In the Node.js application settings, set **Application type** to **Node.js** (not “Next.js”).
-2. **Build command:** `npm run build`
-3. **Start command:** `npm start`  
-   This runs the custom server (`server/index.ts`) so both the API and the Next.js UI are served from the same app.
-4. Set **Node version** to 22 (or 20).
-5. Add your env vars in the Hostinger panel (e.g. `MYSQL_HOST`, `MYSQL_USER`, `MYSQL_PASSWORD`, `MYSQL_DATABASE`, `PORT` if required). Use the same DB host/user/name as in hPanel (e.g. `localhost` and the DB name from Databases).
-6. After deploy, open `https://your-subdomain/health` — it should return `{"ok":true}`. Then try login again; `/api/auth/login` should respond.
-
-`tsx` is included in **dependencies** so `npm start` works in production.
-
-## Usage
-
-1. **Login**: Enter a username (letters, numbers, underscores; 1–50 chars).
-2. **Dashboard**: View monthly summary and quick actions.
-3. **Add Bill** / **Add Expense**: Use the bottom nav or dashboard buttons.
-4. **Reports**: Select a month and switch between monthly and historical tabs.
-5. **Settings**: Set monthly budget and currency.
-
-## Architecture
-
-**One Node.js app: Express (backend) + Next.js (UI)**
-
-- **Express** listens on port 3001 and handles:
-  - **Backend API** at `/api/*` (auth, expenses, bills, settings, summary, reports)
-  - All other requests are passed to **Next.js** for the React UI
-- **Next.js** serves pages, layout, and client-side routing (no Next.js API routes).
-
-Run a single process: `npm run dev` (development) or `npm run build && npm start` (production).
-
-## Tech Stack
-
-- **Node.js** + **Express**: API server
-- **Next.js 14**: React UI (App Router)
-- **React 18**, **Material UI**, **TypeScript**
-- **MySQL (mysql2)**: Database with parameterized queries
-- **date-fns**: Date formatting
-- **tsx**: Run TypeScript server without pre-compiling
-
-## Project Structure
+## Project structure
 
 ```
 budget-tracker/
-├── server/                 # Express backend (same process as Next.js)
-│   ├── index.ts            # Entry: Express + Next.js, single port
-│   ├── middleware/
-│   │   └── auth.ts         # Require X-User-Id, set req.userId
-│   └── routes/
-│       ├── auth.ts         # POST /api/auth/login
-│       ├── expenses.ts     # GET/POST /api/expenses
-│       ├── bills.ts        # GET/POST /api/bills
-│       ├── settings.ts     # GET/PUT /api/settings
-│       ├── summary.ts      # GET /api/summary
-│       └── reports.ts      # GET /api/reports
-├── app/                    # Next.js UI (pages only)
-│   ├── dashboard/
-│   ├── add-bill/
-│   ├── add-expense/
-│   ├── reports/
+├── src/
+│   ├── main.ts              # Bootstrap, Swagger
+│   ├── app.module.ts
+│   ├── auth/                # Login, signup, reset-password
+│   ├── profile/
+│   ├── expenses/
+│   ├── bills/
 │   ├── settings/
-│   ├── layout.tsx
-│   ├── page.tsx
-│   └── globals.css
-├── components/
+│   ├── summary/
+│   ├── reports/
+│   ├── admin/
+│   ├── guards/              # X-User-Id guard
+│   └── decorators/
 ├── lib/
-│   ├── api.ts              # Client API helpers (fetch /api/*)
-│   ├── api-auth.ts         # loginOrRegister, used by server
-│   ├── auth.ts             # Client auth (localStorage)
+│   ├── api-auth.ts          # Auth logic (login, signup, etc.)
 │   ├── sanitize.ts
-│   ├── theme.ts
-│   └── db/                 # MySQL client, types, queries
-├── scripts/
-│   ├── create-database.js
-│   ├── run-migrations.js
-│   └── migrations/
-└── .env / .env.example
+│   └── db/                  # MySQL client, queries, types
+├── scripts/                 # Migrations, db:create, db:test
+├── server.js                # Optional entry for Hostinger
+└── .env
 ```
-
-## Security
-
-- **SQL injection**: All DB access uses parameterized queries via `mysql2` (no string concatenation).
-- **XSS**: User input is validated and length-limited; `lib/sanitize.ts` provides HTML escaping for display.
-- **Validation**: Categories and currency are whitelisted; amounts and dates are validated before persistence.
