@@ -61,6 +61,8 @@ Scripts use the **local** Next CLI (`npx next`), so no global `next` is required
 - Set **Node version** to 20+ in the Hostinger panel.
 - Add env var `NEXT_PUBLIC_API_URL` (your backend API URL) in the panel.
 
+If you see blank screens or chunk loading errors after a deploy, see **[TROUBLESHOOTING.md](TROUBLESHOOTING.md#hostinger--shared-hosting)** (Hostinger / shared hosting).
+
 ## Environment variables
 
 | Variable | Required | Description |

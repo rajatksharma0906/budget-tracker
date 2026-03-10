@@ -42,8 +42,8 @@ interface LayoutProps {
 export default function Layout({ children }: LayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const [role, setRole] = useState<'user' | 'admin' | null>(() => getStoredRole());
-  const [username, setUsername] = useState<string | null>(() => getStoredUsername());
+  const [role, setRole] = useState<'user' | 'admin' | null>(null);
+  const [username, setUsername] = useState<string | null>(null);
   const [authReady, setAuthReady] = useState(false);
 
   // On load/refresh: verify session and sync role (and username) from server

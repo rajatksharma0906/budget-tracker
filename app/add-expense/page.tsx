@@ -97,6 +97,17 @@ export default function AddExpensePage() {
 
   const subCategoryOptions = formData.category ? getSubCategoriesFor(formData.category) : [];
 
+  // Menu props so category/subcategory dropdowns stay usable on mobile (above header, scrollable)
+  const selectMenuProps = {
+    disableScrollLock: true,
+    sx: { zIndex: 1400 },
+    PaperProps: {
+      sx: { maxHeight: 'min(70vh, 360px)', zIndex: 1400 },
+    },
+    anchorOrigin: { vertical: 'bottom' as const, horizontal: 'left' as const },
+    transformOrigin: { vertical: 'top' as const, horizontal: 'left' as const },
+  };
+
   // When only one category exists, default select it (run once on mount)
   useEffect(() => {
     if (EXPENSE_CATEGORIES.length === 1) {
@@ -150,17 +161,14 @@ export default function AddExpensePage() {
       });
 
       setSuccess(true);
-      setTimeout(() => {
-        // Reset form
-        setFormData({
-          description: '',
-          amount: '',
-          category: '',
-          subCategory: '',
-          date: new Date().toISOString().split('T')[0],
-        });
-        setSuccess(false);
-      }, 2000);
+      setFormData({
+        description: '',
+        amount: '',
+        category: '',
+        subCategory: '',
+        date: new Date().toISOString().split('T')[0],
+      });
+      setTimeout(() => setSuccess(false), 600);
     } catch (err: any) {
       console.error('Error creating expense:', err);
       setError(err.message || 'Failed to create expense. Please try again.');
@@ -242,6 +250,7 @@ export default function AddExpensePage() {
             onChange={(e) => handleChange('category', e.target.value)}
             margin="normal"
             required
+            SelectProps={{ MenuProps: selectMenuProps }}
           >
             {EXPENSE_CATEGORIES.map((cat) => (
               <MenuItem key={cat} value={cat}>
@@ -259,6 +268,7 @@ export default function AddExpensePage() {
             onChange={(e) => handleChange('subCategory', e.target.value)}
             margin="normal"
             disabled={!formData.category}
+            SelectProps={{ MenuProps: selectMenuProps }}
           >
             <MenuItem value="">Select sub-category</MenuItem>
             {subCategoryOptions.map((sub) => (
@@ -301,11 +311,6 @@ export default function AddExpensePage() {
           </Box>
 
           <Box sx={{ display: 'flex', gap: 2, mt: 3 }}>
-            {success && (
-              <Button variant="outlined" onClick={handleAddAnother} fullWidth>
-                Add Another Expense
-              </Button>
-            )}
             <Button
               type="submit"
               variant="contained"

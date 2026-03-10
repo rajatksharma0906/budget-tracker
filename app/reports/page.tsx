@@ -67,7 +67,7 @@ function ReportsContent() {
   const [totalBills, setTotalBills] = useState(0);
   const [totalExpenses, setTotalExpenses] = useState(0);
   const [monthlyBudget, setMonthlyBudget] = useState(0);
-  const [tabValue, setTabValue] = useState(() => (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('tab') === 'historical' ? 1 : 0));
+  const [tabValue, setTabValue] = useState(() => searchParams.get('tab') === 'historical' ? 1 : 0);
   const [historicalData, setHistoricalData] = useState<Array<{
     month: string;
     total: number;
@@ -272,11 +272,43 @@ function ReportsContent() {
 
   const editSubCategoryOptions = editForm.category ? getSubCategoriesFor(editForm.category) : [];
 
+  const selectMenuProps = {
+    disableScrollLock: true,
+    sx: { zIndex: 1500 },
+    PaperProps: { sx: { maxHeight: 'min(70vh, 360px)', zIndex: 1500 } },
+    anchorOrigin: { vertical: 'bottom' as const, horizontal: 'left' as const },
+    transformOrigin: { vertical: 'top' as const, horizontal: 'left' as const },
+  };
+
   useEffect(() => {
     const tab = searchParams.get('tab');
     if (tab === 'historical') setTabValue(1);
     else if (tab === 'monthly' || tab === null) setTabValue(0);
   }, [searchParams]);
+
+  const loadReportsForMonth = async (month: string, isMonthlyTab: boolean) => {
+    try {
+      setLoading(true);
+      setError('');
+      const reportsPromise = apiGetReports(month);
+      const deletedPromise = isMonthlyTab ? apiGetDeletedExpenses(month) : Promise.resolve([]);
+      const [data, deletedList] = await Promise.all([reportsPromise, deletedPromise]);
+      setTotalBills(data.totalBills ?? 0);
+      setTotalExpenses(data.totalExpenses ?? 0);
+      setMonthlyBudget(data.monthlyBudget ?? 0);
+      setBills(data.bills ?? []);
+      setExpenses(data.expenses ?? []);
+      setHistoricalData(data.historical ?? []);
+      setYearlyData(data.yearlyData ?? []);
+      if (isMonthlyTab) setDeletedExpenses(Array.isArray(deletedList) ? deletedList : []);
+      setSelectedExpenseIds(new Set());
+      setSelectedDeletedIds(new Set());
+    } catch (err: any) {
+      setError(err.message || 'Failed to load reports');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     const username = getStoredUsername();
@@ -284,35 +316,10 @@ function ReportsContent() {
       router.push('/');
       return;
     }
-
     const month = tabValue === 0 ? selectedMonth : `${historicalYear}-${String(historicalMonth).padStart(2, '0')}`;
     const isMonthlyTab = tabValue === 0;
-    const loadReports = async () => {
-      try {
-        setLoading(true);
-        setError('');
-        const reportsPromise = apiGetReports(month);
-        const deletedPromise = isMonthlyTab ? apiGetDeletedExpenses(month) : Promise.resolve([]);
-        const [data, deletedList] = await Promise.all([reportsPromise, deletedPromise]);
-        setTotalBills(data.totalBills ?? 0);
-        setTotalExpenses(data.totalExpenses ?? 0);
-        setMonthlyBudget(data.monthlyBudget ?? 0);
-        setBills(data.bills ?? []);
-        setExpenses(data.expenses ?? []);
-        setHistoricalData(data.historical ?? []);
-        setYearlyData(data.yearlyData ?? []);
-        if (isMonthlyTab) setDeletedExpenses(Array.isArray(deletedList) ? deletedList : []);
-        setSelectedExpenseIds(new Set());
-        setSelectedDeletedIds(new Set());
-      } catch (err: any) {
-        setError(err.message || 'Failed to load reports');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadReports();
-  }, [selectedMonth, tabValue, router]);
+    loadReportsForMonth(month, isMonthlyTab);
+  }, [selectedMonth, tabValue, historicalYear, historicalMonth, router]);
 
   const generateMonthOptions = () => {
     const options = [];
@@ -381,7 +388,11 @@ function ReportsContent() {
                 select
                 label="Select Month"
                 value={selectedMonth}
-                onChange={(e) => setSelectedMonth(e.target.value)}
+                onChange={(e) => {
+                  const v = e.target.value as string;
+                  setSelectedMonth(v);
+                  loadReportsForMonth(v, true);
+                }}
                 size="small"
                 sx={{ minWidth: 200 }}
               >
@@ -673,6 +684,7 @@ function ReportsContent() {
                   onChange={(e) => handleEditFormChange('category', e.target.value)}
                   margin="normal"
                   required
+                  SelectProps={{ MenuProps: selectMenuProps }}
                 >
                   {EXPENSE_CATEGORIES.map((cat) => (
                     <MenuItem key={cat} value={cat}>{cat}</MenuItem>
@@ -686,6 +698,7 @@ function ReportsContent() {
                   onChange={(e) => handleEditFormChange('subCategory', e.target.value)}
                   margin="normal"
                   disabled={!editForm.category}
+                  SelectProps={{ MenuProps: selectMenuProps }}
                 >
                   <MenuItem value="">Select sub-category</MenuItem>
                   {editSubCategoryOptions.map((sub) => (
@@ -747,7 +760,11 @@ function ReportsContent() {
                     select
                     label="Year"
                     value={historicalYear}
-                    onChange={(e) => setHistoricalYearMonth(Number(e.target.value), historicalMonth)}
+                    onChange={(e) => {
+                      const y = Number(e.target.value);
+                      setHistoricalYear(y);
+                      loadReportsForMonth(`${y}-${String(historicalMonth).padStart(2, '0')}`, false);
+                    }}
                     size="small"
                     sx={{ minWidth: 100 }}
                   >
@@ -759,7 +776,11 @@ function ReportsContent() {
                     select
                     label="Month"
                     value={historicalMonth}
-                    onChange={(e) => setHistoricalYearMonth(historicalYear, Number(e.target.value))}
+                    onChange={(e) => {
+                      const m = Number(e.target.value);
+                      setHistoricalMonth(m);
+                      loadReportsForMonth(`${historicalYear}-${String(m).padStart(2, '0')}`, false);
+                    }}
                     size="small"
                     sx={{ minWidth: 130 }}
                   >
@@ -775,40 +796,46 @@ function ReportsContent() {
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 2, display: 'block' }}>
                   From January through the selected month for the selected year.
                 </Typography>
-                <TableContainer component={Paper} variant="outlined" sx={{ overflowX: 'auto' }}>
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell><strong>Month</strong></TableCell>
-                        <TableCell align="right"><strong>Expenses</strong></TableCell>
-                        <TableCell align="right"><strong>Total</strong></TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {historicalData.length === 0 ? (
+                {loading ? (
+                  <Box display="flex" justifyContent="center" py={4}>
+                    <CircularProgress />
+                  </Box>
+                ) : (
+                  <TableContainer component={Paper} variant="outlined" sx={{ overflowX: 'auto' }}>
+                    <Table size="small">
+                      <TableHead>
                         <TableRow>
-                          <TableCell colSpan={3} align="center" sx={{ py: 4 }}>
-                            <Typography color="text.secondary">
-                              No data for this range. Add expenses in the Monthly Report tab.
-                            </Typography>
-                          </TableCell>
+                          <TableCell><strong>Month</strong></TableCell>
+                          <TableCell align="right"><strong>Expenses</strong></TableCell>
+                          <TableCell align="right"><strong>Total</strong></TableCell>
                         </TableRow>
-                      ) : (
-                        historicalData.map((data, index) => (
-                          <TableRow key={index} hover>
-                            <TableCell>{data.month}</TableCell>
-                            <TableCell align="right">${data.expenses.toFixed(2)}</TableCell>
-                            <TableCell align="right">
-                              <Typography fontWeight="bold" color="primary">
-                                ${data.total.toFixed(2)}
+                      </TableHead>
+                      <TableBody>
+                        {historicalData.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={3} align="center" sx={{ py: 4 }}>
+                              <Typography color="text.secondary">
+                                No data for this range. Add expenses in the Monthly Report tab.
                               </Typography>
                             </TableCell>
                           </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
+                        ) : (
+                          historicalData.map((data, index) => (
+                            <TableRow key={index} hover>
+                              <TableCell>{data.month}</TableCell>
+                              <TableCell align="right">${data.expenses.toFixed(2)}</TableCell>
+                              <TableCell align="right">
+                                <Typography fontWeight="bold" color="primary">
+                                  ${data.total.toFixed(2)}
+                                </Typography>
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                )}
               </>
             )}
             {historicalView === 'yearly' && (
@@ -816,40 +843,46 @@ function ReportsContent() {
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 2, display: 'block' }}>
                   Total spending per year (last 6 years).
                 </Typography>
-                <TableContainer component={Paper} variant="outlined" sx={{ overflowX: 'auto' }}>
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell><strong>Year</strong></TableCell>
-                        <TableCell align="right"><strong>Expenses</strong></TableCell>
-                        <TableCell align="right"><strong>Total</strong></TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {yearlyData.length === 0 ? (
+                {loading ? (
+                  <Box display="flex" justifyContent="center" py={4}>
+                    <CircularProgress />
+                  </Box>
+                ) : (
+                  <TableContainer component={Paper} variant="outlined" sx={{ overflowX: 'auto' }}>
+                    <Table size="small">
+                      <TableHead>
                         <TableRow>
-                          <TableCell colSpan={3} align="center" sx={{ py: 4 }}>
-                            <Typography color="text.secondary">
-                              No yearly data yet. Add expenses in the Monthly Report tab.
-                            </Typography>
-                          </TableCell>
+                          <TableCell><strong>Year</strong></TableCell>
+                          <TableCell align="right"><strong>Expenses</strong></TableCell>
+                          <TableCell align="right"><strong>Total</strong></TableCell>
                         </TableRow>
-                      ) : (
-                        yearlyData.map((row) => (
-                          <TableRow key={row.year} hover>
-                            <TableCell>{row.year}</TableCell>
-                            <TableCell align="right">${row.expenses.toFixed(2)}</TableCell>
-                            <TableCell align="right">
-                              <Typography fontWeight="bold" color="primary">
-                                ${row.total.toFixed(2)}
+                      </TableHead>
+                      <TableBody>
+                        {yearlyData.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={3} align="center" sx={{ py: 4 }}>
+                              <Typography color="text.secondary">
+                                No yearly data yet. Add expenses in the Monthly Report tab.
                               </Typography>
                             </TableCell>
                           </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
+                        ) : (
+                          yearlyData.map((row) => (
+                            <TableRow key={row.year} hover>
+                              <TableCell>{row.year}</TableCell>
+                              <TableCell align="right">${row.expenses.toFixed(2)}</TableCell>
+                              <TableCell align="right">
+                                <Typography fontWeight="bold" color="primary">
+                                  ${row.total.toFixed(2)}
+                                </Typography>
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                )}
               </>
             )}
           </Box>

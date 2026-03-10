@@ -18,10 +18,16 @@ const getHeaders = (): HeadersInit => {
   return headers;
 };
 
+/** Default request timeout (ms). Helps avoid blank screens when API is slow on shared hosting. */
+const FETCH_TIMEOUT_MS = 25000;
+
 /** Message shown when fetch fails (CORS, network, or API unreachable) */
 export const NETWORK_ERROR_MESSAGE =
   "Can't reach the server. The API may be blocking requests from this site (CORS). " +
   'Check that NEXT_PUBLIC_API_URL is correct and the API allows your site\'s origin.';
+
+const TIMEOUT_ERROR_MESSAGE =
+  'The server is taking too long to respond. Please try again in a moment.';
 
 function isNetworkOrCorsError(err: unknown): boolean {
   if (!(err instanceof Error)) return false;
@@ -33,9 +39,22 @@ function isNetworkOrCorsError(err: unknown): boolean {
 }
 
 async function safeFetch(url: string, options?: RequestInit): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  const init: RequestInit = {
+    ...options,
+    signal: controller.signal,
+  };
+
   try {
-    return await fetch(url, options);
+    const res = await fetch(url, init);
+    clearTimeout(timeoutId);
+    return res;
   } catch (err) {
+    clearTimeout(timeoutId);
+    if (err instanceof Error && err.name === 'AbortError') {
+      throw new Error(TIMEOUT_ERROR_MESSAGE);
+    }
     if (isNetworkOrCorsError(err)) {
       throw new Error(NETWORK_ERROR_MESSAGE);
     }

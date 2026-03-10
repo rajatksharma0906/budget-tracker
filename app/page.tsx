@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Box, CircularProgress } from '@mui/material';
 import LoginPage from '@/components/LoginPage';
 import { getStoredUserId } from '@/lib/auth';
 
@@ -18,7 +19,18 @@ export default function Home() {
   }, [router]);
 
   if (isLoading) {
-    return null;
+    return (
+      <Box
+        sx={{
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <CircularProgress aria-label="Loading" />
+      </Box>
+    );
   }
 
   return <LoginPage />;
